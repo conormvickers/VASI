@@ -126,7 +126,7 @@ class _MyHomePageState extends State<MyHomePage> {
                   VerticalDivider(),
                   Text(
                       (savalues[key] * (percentDP[dpvalues[key].toInt()] / 100))
-                          .toString())
+                          .toStringAsPrecision(2))
                 ]),
             children: [
               Row(children: [
@@ -196,7 +196,7 @@ class _MyHomePageState extends State<MyHomePage> {
     savalues.asMap().forEach((key, value) {
       calc = calc + savalues[key] * (percentDP[dpvalues[key].toInt()] / 100);
     });
-    score = 'VASI Score: ' + calc.toString();
+    score = 'VASI Score: ' + calc.toStringAsPrecision(2);
     return score;
   }
 
@@ -227,7 +227,8 @@ class _MyHomePageState extends State<MyHomePage> {
                       border: Border.all(),
                       borderRadius: BorderRadius.circular(15),
                     ),
-                    child: Text(calculateScore(),
+                    child: Text(
+                      calculateScore(),
                       textAlign: TextAlign.center,
                     ),
                   ),
@@ -312,8 +313,8 @@ class _MyHomePageState extends State<MyHomePage> {
                 ),
                 Expanded(
                   flex: 2,
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                  child: ListView(
+                    //mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                     children: loadData(),
                   ),
                 )
@@ -337,22 +338,27 @@ class _MyHomePageState extends State<MyHomePage> {
     Directory.fromUri(Uri.file(lp))
         .list(recursive: true, followLinks: false)
         .listen((FileSystemEntity entity) {
-      //File lm = File(entity.path).lastModified();
-      files.add(entity.path);
-      fileDetails.add(entity);
+      if (entity.path.substring(entity.path.lastIndexOf('.')) == '.txt') {
+        files.add(entity.path);
+        fileDetails.add(entity);
+      }
     }).onDone(() {
-      files.sort((b, a) =>
-          File(a).lastModifiedSync().compareTo(File(b).lastModifiedSync()));
-      setState(() {
-        print("found files: " + files.toString());
-        for (String file in files) {
-          tiles.add(ListTile(
-            title: Text(file.substring(
-                file.lastIndexOf('/') + 1, file.lastIndexOf('.'))),
-          ));
-        }
-        print('done');
-      });
+      if (files.length > 0) {
+        files.sort((b, a) =>
+            File(a).lastModifiedSync().compareTo(File(b).lastModifiedSync()));
+        setState(() {
+          print("found files: " + files.toString());
+          for (String file in files) {
+            if (file.contains('/') && file.contains('.')) {
+              tiles.add(ListTile(
+                title: Text(file.substring(
+                    file.lastIndexOf('/') + 1, file.lastIndexOf('.'))),
+              ));
+            }
+          }
+          print('done');
+        });
+      }
     });
   }
 
@@ -486,14 +492,16 @@ class AppExpansionTileState extends State<AppExpansionTile>
   void initState() {
     super.initState();
 
-    _controller = new AnimationController(duration: _kExpand, vsync: this);
-    _easeOutAnimation =
-        new CurvedAnimation(parent: _controller, curve: Curves.easeOut);
+    _controller = AnimationController(duration: _kExpand, vsync: this);
+    _easeOutAnimation = CurvedAnimation(
+      parent: _controller,
+      curve: Curves.easeOut,
+    );
     _easeInAnimation =
-        new CurvedAnimation(parent: _controller, curve: Curves.easeIn);
-    _borderColor = new ColorTween();
-    _headerColor = new ColorTween();
-    _iconColor = new ColorTween();
+        CurvedAnimation(parent: _controller, curve: Curves.easeIn);
+    _borderColor = ColorTween();
+    _headerColor = ColorTween();
+    _iconColor = ColorTween();
     _iconTurns =
         new Tween<double>(begin: 0.0, end: 0.5).animate(_easeInAnimation);
     _backgroundColor = new ColorTween();
