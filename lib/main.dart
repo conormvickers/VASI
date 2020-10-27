@@ -10,6 +10,7 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:intl/intl.dart';
 import 'package:percent_indicator/percent_indicator.dart';
+import 'package:flutter_slidable/flutter_slidable.dart';
 
 final String assetName = 'assets/body.svg';
 
@@ -84,12 +85,40 @@ class _MyHomePageState extends State<MyHomePage> {
     print('got path');
     File file = File(path + '/' + name.text + '_' + formatted + '.txt');
     String toSave = name.text + '_' + formatted;
-    for (double value in savalues) {
-      toSave = toSave + '/' + value.toString();
-    }
+    savalues.asMap().forEach((key, value) {
+      toSave = toSave + '/' + value.toString() + ',' + dpvalues[key].toString();
+    });
+
     print('info to be saved: ' + toSave);
     file.writeAsString(toSave);
     print('Saved: ' + file.path);
+  }
+
+  loadFile(String url) {
+    setState(() {
+      print('loading');
+      File file = File(url);
+      String loaded = file.readAsStringSync();
+      print('loaded');
+      if (loaded.contains('/')) {
+        List<String> initSplit = loaded.split('/');
+        initSplit.asMap().forEach((key, value) {
+          print(key.toString() + value);
+          if (key == 0) {
+            if (value.contains('_')) {
+              name.text = value.split('_')[0];
+            }
+          }
+          if (key != 0) {
+            List<String> commaSplit = value.split(',');
+            if (commaSplit.length > 1) {
+              savalues[key - 1] = double.parse(commaSplit[0]);
+              dpvalues[key - 1] = double.parse(commaSplit[1]);
+            }
+          }
+        });
+      }
+    });
   }
 
   String currentFilePath = '';
@@ -301,7 +330,7 @@ class _MyHomePageState extends State<MyHomePage> {
                       Expanded(
                           child: Container(
                               decoration: BoxDecoration(border: Border.all()),
-                              child: Text('insert name'))),
+                              child: Text(name.text))),
                       Expanded(
                           flex: 2,
                           child: Container(
@@ -350,9 +379,25 @@ class _MyHomePageState extends State<MyHomePage> {
           print("found files: " + files.toString());
           for (String file in files) {
             if (file.contains('/') && file.contains('.')) {
-              tiles.add(ListTile(
-                title: Text(file.substring(
-                    file.lastIndexOf('/') + 1, file.lastIndexOf('.'))),
+              tiles.add(Slidable(
+                actionPane: SlidableScrollActionPane(),
+                secondaryActions: [
+                  IconSlideAction(
+                      icon: FlutterIcons.delete_circle_mco,
+                      caption: 'delete',
+                      color: Colors.red,
+                      onTap: () => {
+                            File(file).delete(),
+                            setState(() => {
+                                  updateFiles(),
+                                })
+                          })
+                ],
+                child: ListTile(
+                  onTap: () => {loadFile(file)},
+                  title: Text(file.substring(
+                      file.lastIndexOf('/') + 1, file.lastIndexOf('.'))),
+                ),
               ));
             }
           }
