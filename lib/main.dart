@@ -40,7 +40,9 @@ class MyApp extends StatelessWidget {
 PersistentTabController _controller = PersistentTabController(initialIndex: 2);
 double head = 0;
 List<Widget> tiles = List<Widget>();
-List<String> bodyParts = [
+List<String> files = List<String>();
+List<FileCheckDuo> checks = List<FileCheckDuo>();
+    List<String> bodyParts = [
   'Head/Includes face, neck, scalp/9',
   'Chest/Includes back, and abdomen/35',
   'Arms/Includes axilla/14',
@@ -52,6 +54,7 @@ List<double> percentDP = [0, 10, 25, 50, 75, 90, 100];
 List<double> savalues = List<double>();
 List<double> dpvalues = List<double>();
 TextEditingController name = TextEditingController();
+TextEditingController dateHolder = TextEditingController();
 
 class MyHomePage extends StatefulWidget {
   MyHomePage({Key key, this.title}) : super(key: key);
@@ -78,7 +81,7 @@ class _MyHomePageState extends State<MyHomePage> {
   saveCurrent() async {
     print('starting save...');
     DateTime now = DateTime.now();
-    DateFormat format = DateFormat("yyyy_MM_dd");
+    DateFormat format = DateFormat("MM_dd_yyyy");
     String formatted = format.format(now);
     print(formatted);
     final path = await _localPath;
@@ -107,6 +110,7 @@ class _MyHomePageState extends State<MyHomePage> {
           if (key == 0) {
             if (value.contains('_')) {
               name.text = value.split('_')[0];
+              dateHolder.text = value.substring(value.indexOf('_') + 1);
             }
           }
           if (key != 0) {
@@ -232,7 +236,12 @@ class _MyHomePageState extends State<MyHomePage> {
   List<Widget> _buildScreens() {
     return [
       Expanded(child: Container(child: Icon(custom.MyFlutterApp.body))),
-      Icon(custom.MyFlutterApp.body),
+      Container(
+        child: ListView(
+          children:
+            getSelectableTiles(),
+        ),
+      ),
       Column(
         children: [
           Expanded(
@@ -329,14 +338,33 @@ class _MyHomePageState extends State<MyHomePage> {
                     children: [
                       Expanded(
                           child: Container(
-                              decoration: BoxDecoration(border: Border.all()),
-                              child: Text(name.text))),
+                            padding: EdgeInsets.all(10),
+                            child: Container(
+                              alignment: Alignment.center,
+                                decoration: BoxDecoration(border: Border.all(),
+                                borderRadius: BorderRadius.circular(15)),
+                            child: Text(
+                              name.text,
+                              textAlign: TextAlign.center,
+                            )),
+                      )),
                       Expanded(
-                          flex: 2,
+                          child: Container(
+                        padding: EdgeInsets.all(10),
+                        child: Container(
+                          child: Text(
+                            dateHolder.text,
+                            textAlign: TextAlign.center,
+                          ),
+                        ),
+                      )),
+                      Expanded(
+                          flex: 4,
                           child: Container(
                             child: FittedBox(
                                 child: Icon(custom.MyFlutterApp.body)),
                           )),
+                      Expanded(child: Text(calculateScore())),
                     ],
                   ),
                 ),
@@ -358,12 +386,35 @@ class _MyHomePageState extends State<MyHomePage> {
       Icon(FlutterIcons.new_message_ent),
     ];
   }
+  List<Widget> getSelectableTiles() {
+    List<Widget> returning = List<Widget>();
+
+    files.asMap().forEach((key, file) {
+      bool temp = false;
+      LabeledCheckbox add = LabeledCheckbox(
+        value: temp,
+        onChanged: (bool value) {
+          setState(() {
+            temp = value;
+          });
+
+        },
+        label: file,
+        padding: EdgeInsets.all(5),
+      );
+      returning.add(add);
+
+    });
+    return returning;
+
+  }
 
   updateFiles() async {
     String lp = await _localPath;
-    List<String> files = [];
+    files = List<String>();
     List<FileSystemEntity> fileDetails = [];
     tiles = List<Widget>();
+
     Directory.fromUri(Uri.file(lp))
         .list(recursive: true, followLinks: false)
         .listen((FileSystemEntity entity) {
@@ -377,30 +428,32 @@ class _MyHomePageState extends State<MyHomePage> {
             File(a).lastModifiedSync().compareTo(File(b).lastModifiedSync()));
         setState(() {
           print("found files: " + files.toString());
-          for (String file in files) {
-            if (file.contains('/') && file.contains('.')) {
-              tiles.add(Slidable(
-                actionPane: SlidableScrollActionPane(),
-                secondaryActions: [
-                  IconSlideAction(
-                      icon: FlutterIcons.delete_circle_mco,
-                      caption: 'delete',
-                      color: Colors.red,
-                      onTap: () => {
-                            File(file).delete(),
-                            setState(() => {
-                                  updateFiles(),
-                                })
-                          })
-                ],
-                child: ListTile(
-                  onTap: () => {loadFile(file)},
-                  title: Text(file.substring(
-                      file.lastIndexOf('/') + 1, file.lastIndexOf('.'))),
-                ),
-              ));
+
+            print('loadable');
+            for (String file in files) {
+              if (file.contains('/') && file.contains('.')) {
+                tiles.add(Slidable(
+                  actionPane: SlidableScrollActionPane(),
+                  secondaryActions: [
+                    IconSlideAction(
+                        icon: FlutterIcons.delete_circle_mco,
+                        caption: 'delete',
+                        color: Colors.red,
+                        onTap: () => {
+                              File(file).delete(),
+                              setState(() => {
+                                    updateFiles(),
+                                  })
+                            })
+                  ],
+                  child: ListTile(
+                    onTap: () => {loadFile(file)},
+                    title: Text(file.substring(
+                        file.lastIndexOf('/') + 1, file.lastIndexOf('.'))),
+                  ),
+                ));
+              }
             }
-          }
           print('done');
         });
       }
@@ -470,6 +523,8 @@ class _MyHomePageState extends State<MyHomePage> {
         onItemSelected: (int) {
           if (int == 3) {
             updateFiles();
+          }else if (int ==1) {
+            updateFiles();
           }
         },
         popAllScreensOnTapOfSelectedTab: true,
@@ -492,6 +547,49 @@ class _MyHomePageState extends State<MyHomePage> {
     );
   }
 }
+class FileCheckDuo {
+  FileCheckDuo(this.url, this.checked);
+  String url;
+  bool checked;
+}
+class LabeledCheckbox extends StatelessWidget {
+  const LabeledCheckbox({
+    this.label,
+    this.padding,
+    this.value,
+    this.onChanged,
+    this.file,
+  });
+
+  final String label;
+  final EdgeInsets padding;
+  final bool value;
+  final Function onChanged;
+  final String file;
+  @override
+  Widget build(BuildContext context) {
+    return InkWell(
+      onTap: () {
+        onChanged(!value);
+      },
+      child: Padding(
+        padding: padding,
+        child: Row(
+          children: <Widget>[
+            Expanded(child: Text(label)),
+            Checkbox(
+              value: value,
+              onChanged: (bool newValue) {
+                onChanged(newValue);
+              },
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
 
 const Duration _kExpand = const Duration(milliseconds: 200);
 
