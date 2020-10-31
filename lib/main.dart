@@ -11,6 +11,7 @@ import 'package:path_provider/path_provider.dart';
 import 'package:intl/intl.dart';
 import 'package:percent_indicator/percent_indicator.dart';
 import 'package:flutter_slidable/flutter_slidable.dart';
+import 'package:share/share.dart';
 
 final String assetName = 'assets/body.svg';
 
@@ -42,7 +43,7 @@ double head = 0;
 List<Widget> tiles = List<Widget>();
 List<String> files = List<String>();
 List<FileCheckDuo> checks = List<FileCheckDuo>();
-    List<String> bodyParts = [
+List<String> bodyParts = [
   'Head/Includes face, neck, scalp/9',
   'Chest/Includes back, and abdomen/35',
   'Arms/Includes axilla/14',
@@ -53,8 +54,8 @@ List<FileCheckDuo> checks = List<FileCheckDuo>();
 List<double> percentDP = [0, 10, 25, 50, 75, 90, 100];
 List<double> savalues = List<double>();
 List<double> dpvalues = List<double>();
-TextEditingController name = TextEditingController();
-TextEditingController dateHolder = TextEditingController();
+TextEditingController name = TextEditingController(text: 'name');
+TextEditingController dateHolder = TextEditingController(text: 'date');
 
 class MyHomePage extends StatefulWidget {
   MyHomePage({Key key, this.title}) : super(key: key);
@@ -233,13 +234,61 @@ class _MyHomePageState extends State<MyHomePage> {
     return score;
   }
 
+  sendSelectedFiles() {
+    List<String> toSend = List<String>();
+    for (FileCheckDuo d in checkedOrNah) {
+      if (d.checked == true) {
+        print(d.url);
+        toSend.add(d.url);
+      }
+    }
+    if (toSend.length > 0) {
+      Share.shareFiles(toSend);
+    }
+  }
+
   List<Widget> _buildScreens() {
     return [
-      Expanded(child: Container(child: Icon(custom.MyFlutterApp.body))),
+      Column(
+        children: [
+          Expanded(child: Container(child: Icon(FlutterIcons.light_bulb_ent))),
+        ],
+      ),
       Container(
-        child: ListView(
-          children:
-            getSelectableTiles(),
+        child: Stack(
+          children: [
+            Column(
+              children: [
+                Expanded(
+                  child: ListView(
+                    children: getSelectableTiles(),
+                  ),
+                ),
+              ],
+            ),
+            Column(
+              mainAxisAlignment: MainAxisAlignment.end,
+              children: [
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceAround,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    FloatingActionButton(
+                        child: Icon(FlutterIcons.restore_mco),
+                        onPressed: () => {
+                              setState(() => {resetChecked()})
+                            }),
+                    FloatingActionButton(
+                        child: Icon(FlutterIcons.arrow_alt_circle_up_faw5),
+                        onPressed: () => {sendSelectedFiles()}),
+                  ],
+                ),
+                Container(
+                  height: 20,
+                ),
+              ],
+            )
+          ],
         ),
       ),
       Column(
@@ -294,6 +343,12 @@ class _MyHomePageState extends State<MyHomePage> {
                   child: TextField(
                     showCursor: true,
                     controller: name,
+                    onTap: () {
+                      name.selection = new TextSelection(
+                        baseOffset: 0,
+                        extentOffset: name.text.length,
+                      );
+                    },
                   ),
                 ),
                 Text('name or identifier'),
@@ -338,23 +393,28 @@ class _MyHomePageState extends State<MyHomePage> {
                     children: [
                       Expanded(
                           child: Container(
-                            padding: EdgeInsets.all(10),
-                            child: Container(
-                              alignment: Alignment.center,
-                                decoration: BoxDecoration(border: Border.all(),
+                        padding: EdgeInsets.all(2),
+                        child: Container(
+                            alignment: Alignment.center,
+                            decoration: BoxDecoration(
+                                border: Border.all(),
                                 borderRadius: BorderRadius.circular(15)),
-                            child: Text(
-                              name.text,
-                              textAlign: TextAlign.center,
+                            child: FittedBox(
+                              child: Text(
+                                name.text,
+                                textAlign: TextAlign.center,
+                              ),
                             )),
                       )),
                       Expanded(
                           child: Container(
                         padding: EdgeInsets.all(10),
                         child: Container(
-                          child: Text(
-                            dateHolder.text,
-                            textAlign: TextAlign.center,
+                          child: FittedBox(
+                            child: Text(
+                              dateHolder.text,
+                              textAlign: TextAlign.center,
+                            ),
                           ),
                         ),
                       )),
@@ -383,30 +443,46 @@ class _MyHomePageState extends State<MyHomePage> {
           ],
         ),
       ),
-      Icon(FlutterIcons.new_message_ent),
+      Icon(FlutterIcons.settings_applications_mdi),
     ];
   }
+
+  List<FileCheckDuo> checkedOrNah = List<FileCheckDuo>();
   List<Widget> getSelectableTiles() {
     List<Widget> returning = List<Widget>();
+    if (files.length > checkedOrNah.length) {
+      List<FileCheckDuo> adding = List<FileCheckDuo>.generate(
+          files.length - checkedOrNah.length,
+          (int index) => FileCheckDuo('blank', false));
+      checkedOrNah.addAll(adding);
+    }
+    if (files.length < checkedOrNah.length) {
+      for (int i = 0; i < checkedOrNah.length - files.length; i++) {
+        checkedOrNah.removeLast();
+      }
+    }
 
     files.asMap().forEach((key, file) {
-      bool temp = false;
+      checkedOrNah[key].url = file;
       LabeledCheckbox add = LabeledCheckbox(
-        value: temp,
+        value: checkedOrNah[key].checked,
         onChanged: (bool value) {
           setState(() {
-            temp = value;
+            checkedOrNah[key].checked = value;
           });
-
         },
-        label: file,
+        label: file.substring(file.lastIndexOf('/') + 1, file.lastIndexOf('.')),
         padding: EdgeInsets.all(5),
       );
       returning.add(add);
-
     });
     return returning;
+  }
 
+  resetChecked() {
+    for (FileCheckDuo d in checkedOrNah) {
+      d.checked = false;
+    }
   }
 
   updateFiles() async {
@@ -429,31 +505,31 @@ class _MyHomePageState extends State<MyHomePage> {
         setState(() {
           print("found files: " + files.toString());
 
-            print('loadable');
-            for (String file in files) {
-              if (file.contains('/') && file.contains('.')) {
-                tiles.add(Slidable(
-                  actionPane: SlidableScrollActionPane(),
-                  secondaryActions: [
-                    IconSlideAction(
-                        icon: FlutterIcons.delete_circle_mco,
-                        caption: 'delete',
-                        color: Colors.red,
-                        onTap: () => {
-                              File(file).delete(),
-                              setState(() => {
-                                    updateFiles(),
-                                  })
-                            })
-                  ],
-                  child: ListTile(
-                    onTap: () => {loadFile(file)},
-                    title: Text(file.substring(
-                        file.lastIndexOf('/') + 1, file.lastIndexOf('.'))),
-                  ),
-                ));
-              }
+          print('loadable');
+          for (String file in files) {
+            if (file.contains('/') && file.contains('.')) {
+              tiles.add(Slidable(
+                actionPane: SlidableScrollActionPane(),
+                secondaryActions: [
+                  IconSlideAction(
+                      icon: FlutterIcons.delete_circle_mco,
+                      caption: 'delete',
+                      color: Colors.red,
+                      onTap: () => {
+                            File(file).delete(),
+                            setState(() => {
+                                  updateFiles(),
+                                })
+                          })
+                ],
+                child: ListTile(
+                  onTap: () => {loadFile(file)},
+                  title: Text(file.substring(
+                      file.lastIndexOf('/') + 1, file.lastIndexOf('.'))),
+                ),
+              ));
             }
+          }
           print('done');
         });
       }
@@ -523,7 +599,8 @@ class _MyHomePageState extends State<MyHomePage> {
         onItemSelected: (int) {
           if (int == 3) {
             updateFiles();
-          }else if (int ==1) {
+          } else if (int == 1) {
+            resetChecked();
             updateFiles();
           }
         },
@@ -547,11 +624,13 @@ class _MyHomePageState extends State<MyHomePage> {
     );
   }
 }
+
 class FileCheckDuo {
   FileCheckDuo(this.url, this.checked);
   String url;
   bool checked;
 }
+
 class LabeledCheckbox extends StatelessWidget {
   const LabeledCheckbox({
     this.label,
@@ -589,7 +668,6 @@ class LabeledCheckbox extends StatelessWidget {
     );
   }
 }
-
 
 const Duration _kExpand = const Duration(milliseconds: 200);
 
