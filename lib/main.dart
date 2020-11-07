@@ -44,8 +44,10 @@ List<Widget> tiles = List<Widget>();
 List<String> files = List<String>();
 List<FileCheckDuo> checks = List<FileCheckDuo>();
 List<String> bodyParts = [
-  'Head/Includes face, neck, scalp/9',
-  'Chest/Includes back, and abdomen/35',
+  'Scalp/Includes ears/4',
+  'Face/Includes lips, eyelids, and chin/2',
+  'Neck/Includes front and back of neck/3',
+  'Chest/Includes front and back of neck/35',
   'Arms/Includes axilla/14',
   'Hands/Includes palms/4',
   'Legs/Includes buttocks and groin/32',
@@ -137,7 +139,11 @@ class _MyHomePageState extends State<MyHomePage> {
 
       loadTiles.add(LinearPercentIndicator(
         percent: savalues[key] /
-            int.parse(line.substring(line.lastIndexOf('/') + 1)),
+                    int.parse(line.substring(line.lastIndexOf('/') + 1)) <=
+                1.0
+            ? savalues[key] /
+                int.parse(line.substring(line.lastIndexOf('/') + 1))
+            : 1.0,
       ));
       loadTiles.add(Divider());
     });
@@ -163,58 +169,111 @@ class _MyHomePageState extends State<MyHomePage> {
                           .toStringAsPrecision(2))
                 ]),
             children: [
-              Row(children: [
-                Expanded(
-                  child: Column(
-                    children: [
-                      Text('% Surface Area'),
-                      Slider(
-                        min: 0,
-                        max: double.parse(split[2]),
-                        divisions: int.parse(split[2]),
-                        value: savalues[key],
-                        label: savalues[key].round().toString(),
-                        onChanged: (value) => {
-                          setState(() {
-                            print(value);
-                            print(savalues);
-                            savalues[key] = value;
-                          })
-                        },
+              Column(
+                children: [
+                  Container(
+                    padding: EdgeInsets.only(bottom: 10, left: 15),
+                    alignment: Alignment.topLeft,
+                    child: Text(
+                      split[1],
+                      textAlign: TextAlign.left,
+                      style: TextStyle(
+                        fontSize: 12,
                       ),
-                    ],
+                    ),
                   ),
-                ),
-                Expanded(
-                  child: Column(
-                    children: [
-                      Text('% Depigmentation'),
-                      Slider(
-                        min: 0,
-                        max: 6,
-                        divisions: 6,
-                        value: dpvalues[key],
-                        label: percentDP[dpvalues[key].toInt()]
-                                .toString()
-                                .substring(
-                                    0,
-                                    percentDP[dpvalues[key].toInt()]
-                                            .toString()
-                                            .length -
-                                        2) +
-                            '%',
-                        onChanged: (value) => {
-                          setState(() {
-                            print(value);
-                            print(dpvalues);
-                            dpvalues[key] = value;
-                          })
-                        },
+                  Row(children: [
+                    Expanded(
+                      child: Column(
+                        children: [
+                          Text('% Surface Area'),
+                          Slider(
+                            min: 0,
+                            max: double.parse(split[2]),
+                            divisions: int.parse(split[2]),
+                            value: savalues[key] <= double.parse(split[2])
+                                ? savalues[key]
+                                : double.parse(split[2]),
+                            label: savalues[key].round().toString() +
+                                '% total BSA',
+                            onChanged: (value) => {
+                              setState(() {
+                                print(value);
+                                print(savalues);
+                                savalues[key] = value;
+                              })
+                            },
+                          ),
+                          Container(
+                            padding:
+                                EdgeInsets.only(left: 10, right: 10, bottom: 5),
+                            child: Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                              children: [
+                                Text(
+                                  'None',
+                                  style: TextStyle(fontSize: 10),
+                                ),
+                                Text(
+                                  'Full area',
+                                  style: TextStyle(fontSize: 10),
+                                )
+                              ],
+                            ),
+                          )
+                        ],
                       ),
-                    ],
-                  ),
-                )
-              ]),
+                    ),
+                    VerticalDivider(),
+                    Expanded(
+                      child: Column(
+                        children: [
+                          Text('% Depigmentation'),
+                          Slider(
+                            min: 0,
+                            max: 6,
+                            divisions: 6,
+                            value: dpvalues[key],
+                            label: percentDP[dpvalues[key].toInt()]
+                                    .toString()
+                                    .substring(
+                                        0,
+                                        percentDP[dpvalues[key].toInt()]
+                                                .toString()
+                                                .length -
+                                            2) +
+                                '%',
+                            onChanged: (value) => {
+                              setState(() {
+                                print(value);
+                                print(dpvalues);
+                                dpvalues[key] = value;
+                              })
+                            },
+                          ),
+                          Container(
+                            padding:
+                                EdgeInsets.only(left: 10, right: 10, bottom: 5),
+                            child: Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                              children: [
+                                Text(
+                                  'Full pigment',
+                                  style: TextStyle(fontSize: 10),
+                                ),
+                                Text(
+                                  'No pigment',
+                                  style: TextStyle(fontSize: 10),
+                                )
+                              ],
+                            ),
+                          )
+                        ],
+                      ),
+                    )
+                  ]),
+                ],
+              ),
             ],
           ),
         );
@@ -231,6 +290,9 @@ class _MyHomePageState extends State<MyHomePage> {
       calc = calc + savalues[key] * (percentDP[dpvalues[key].toInt()] / 100);
     });
     score = 'VASI Score: ' + calc.toStringAsPrecision(2);
+    if (calc == 100) {
+      score = 'VASI Score: 100';
+    }
     return score;
   }
 
@@ -247,7 +309,7 @@ class _MyHomePageState extends State<MyHomePage> {
     }
   }
 
-  List<Widget> _buildScreens() {
+  List<Widget> _buildScreens(BuildContext context) {
     return [
       Column(
         children: [
@@ -443,8 +505,50 @@ class _MyHomePageState extends State<MyHomePage> {
           ],
         ),
       ),
-      Icon(FlutterIcons.settings_applications_mdi),
+      ListView(
+        children: getSettings(context),
+      )
     ];
+  }
+
+  List<Widget> getSettings(BuildContext context) {
+    List<Widget> settings = List<Widget>();
+    settings.add(Divider());
+    Widget title = ListTile(
+      title: Text('BODY PARTS'),
+      trailing: Text("% BSA"),
+    );
+    settings.add(title);
+    List<TextEditingController> valueConts = List<TextEditingController>();
+    bodyParts.asMap().forEach((key, value) {
+      List<String> split = value.split('/');
+      TextEditingController cont = TextEditingController(text: split[2]);
+      valueConts.add(cont);
+      FocusNode temp = FocusNode();
+      Widget add = ListTile(
+        title: Text(split[0]),
+        trailing: Container(
+            width: 50,
+            child: TextField(
+                keyboardType: TextInputType.number,
+                focusNode: temp,
+                onTap: () => temp.requestFocus(),
+                onEditingComplete: () => {
+                      setState(() => {
+                            temp.unfocus(),
+                            bodyParts[key] = bodyParts[key].substring(
+                                    0, bodyParts[key].lastIndexOf('/')) +
+                                '/' +
+                                int.parse(valueConts[key].text).toString(),
+                            print('new added: ' + bodyParts.toString())
+                          })
+                    },
+                controller: valueConts[key])),
+      );
+      settings.add(add);
+    });
+    settings.add(Divider());
+    return settings;
   }
 
   List<FileCheckDuo> checkedOrNah = List<FileCheckDuo>();
@@ -582,7 +686,7 @@ class _MyHomePageState extends State<MyHomePage> {
       ),
       body: PersistentTabView(
         controller: _controller,
-        screens: _buildScreens(),
+        screens: _buildScreens(context),
         items: _navBarsItems(),
         confineInSafeArea: true,
         backgroundColor: Colors.white,
